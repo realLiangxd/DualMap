@@ -2,13 +2,13 @@
 import importlib.util
 import logging
 
-import hydra
-from omegaconf import DictConfig
+import hydra    # hydra 用来管理配置文件，可以方便地加载和覆盖配置参数
+from omegaconf import DictConfig    # DictConfig 是 OmegaConf 提供的一种配置对象，支持层次化结构，类似于字典
 
 from utils.logging_helper import setup_logging
 
-
-def detect_ros_version():
+# Function to detect ROS version
+def detect_ros_version():   
     if importlib.util.find_spec("rclpy") is not None:
         return "ros2"
     elif importlib.util.find_spec("rospy") is not None:
@@ -19,10 +19,10 @@ def detect_ros_version():
 
 @hydra.main(version_base=None, config_path="../config/", config_name="runner_ros")
 def main(cfg: DictConfig):
-    setup_logging(output_path=cfg.output_path, config_path=cfg.logging_config)
+    setup_logging(output_path=cfg.output_path, config_path=cfg.logging_config)      # 设置日志记录
     logger = logging.getLogger(__name__)
 
-    ros_version = detect_ros_version()
+    ros_version = detect_ros_version()      
 
     if ros_version == "ros1":
         logger.warning("[runner_ros] Detected ROS1 environment. Running ROS1 runner.")

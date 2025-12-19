@@ -19,15 +19,15 @@ class RunnerROSBase:
     image decompression, pose conversion, and keyframe processing.
     """
 
-    def __init__(self, cfg, dualmap):
+    def __init__(self, cfg, dualmap):       # __init__ 构造函数
         self.cfg = cfg
         self.dualmap = dualmap
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)   #  __name__ 获取当前模块的名称
 
         self.kf_idx = 0
         self.intrinsics = None
         self.extrinsics = None
-        self.synced_data_queue = deque(maxlen=1)
+        self.synced_data_queue = deque(maxlen=1)    # 用于存储同步后的数据输入的队列，最大长度为1
         self.shutdown_requested = False
         self.last_message_time = None
 

@@ -35,14 +35,14 @@ logger = logging.getLogger(__name__)
 
 
 class Dualmap:
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: DictConfig):    # cfg: DictConfig 表示cfg是一个字典配置对象
         """
         Initialize Dualmap with configuration and essential components.
         """
         self.cfg = cfg
 
         # print config into console
-        self.print_cfg()
+        self.print_cfg()    
 
         # Initialization
         self.visualizer = ReRunVisualizer(cfg)

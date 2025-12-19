@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class ReRunVisualizer:
-    _instance = None
+    _instance = None    # Singleton instance of the class 单例模式，确保全局只有一个实例 None代表未初始化
 
     def __init__(self, cfg=None) -> None:
 
-        if not self._initialized:
-            super().__init__()
+        if not self._initialized:   # 默认值为 False，第一次初始化时进入该分支
+            super().__init__()      # 调用父类的构造函数，如果没有继承父类，可以省略这行
             self.cfg = cfg
 
             classes_path = cfg.yolo.classes_path
@@ -45,7 +45,7 @@ class ReRunVisualizer:
 
             self.overlapped_image = None
 
-    def __new__(cls, cfg=None):
+    def __new__(cls, cfg=None):     # 控制实例化过程，确保只有一个实例被创建；__new__是类的构造方法，代表类本身，接受类作为第一个参数
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             # Initialize the instance "once"

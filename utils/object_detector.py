@@ -18,7 +18,7 @@ from PIL import Image
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from sklearn.metrics.pairwise import cosine_similarity
-from ultralytics import SAM, YOLO, FastSAM
+from ultralytics import SAM, YOLO, FastSAM      # ultralytics 包含 YOLO 和 SAM 模型的实现，用于目标检测和图像分割任务，FastSAM 是 SAM 的加速版本
 
 from utils.pcd_utils import (
     mask_depth_to_points,
@@ -101,7 +101,7 @@ class Detector:
 
         # get detection paths
         self.detection_path = Path(cfg.detection_path)
-        self.detection_path.mkdir(parents=True, exist_ok=True)
+        self.detection_path.mkdir(parents=True, exist_ok=True)  # create dir if not exists
 
         # Configs
         self.cfg = cfg
@@ -112,13 +112,13 @@ class Detector:
         self.curr_data = DataInput()
         self.prev_data = None
         # KF for layout keyframe
-        self.prev_kf_data = None
+        self.prev_kf_data = None    
 
         # masked points and colors
-        self.masked_points = []
-        self.masked_colors = []
+        self.masked_points = []     # list for each obj points
+        self.masked_colors = []     # list for each obj colors
         # Observations, a list for each obj observation
-        self.curr_observations = []
+        self.curr_observations = []     # list for each obj observation
 
         # visualizer
         self.visualizer = ReRunVisualizer()

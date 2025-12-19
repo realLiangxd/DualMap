@@ -546,11 +546,11 @@ class GlobalMapManager(BaseMapManager):
     ):
         # calculate global path
 
-        import open3d as o3d
+        import open3d as o3d    # for point cloud operations
 
         # Get all pcd from global map
-        total_pcd = o3d.geometry.PointCloud()
-        for obj in self.global_map:
+        total_pcd = o3d.geometry.PointCloud()   # Initialize an empty point cloud
+        for obj in self.global_map:     # Iterate through each global object
             total_pcd += obj.pcd_2d
 
         # Add current pose into the total pcd
@@ -559,7 +559,7 @@ class GlobalMapManager(BaseMapManager):
         curr_point.points = o3d.utility.Vector3dVector([curr_point_coords])
         total_pcd += curr_point
 
-        # Add layout wall inforin to the total pcd
+        # Add layout wall inforin to the total pcd 
         total_pcd += self.layout_map.wall_pcd
 
         # Step 1: Constucting 2D occupancy map

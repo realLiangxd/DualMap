@@ -9,7 +9,7 @@ import rospy
 from cv_bridge import CvBridge
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf     # OmegaConf 用于处理配置文件, 支持层次化结构, 类型转换等功能
 from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 
 from applications.utils.runner_ros_base import RunnerROSBase
@@ -23,15 +23,15 @@ class RunnerROS1(RunnerROSBase):
     """
 
     def __init__(self, cfg):
-        rospy.init_node("runner_ros", anonymous=True)
-        setup_logging(output_path=cfg.output_path, config_path=cfg.logging_config)
-        self.logger = logging.getLogger(__name__)
+        rospy.init_node("runner_ros", anonymous=True)   # 初始化 ROS 节点，节点名称为 "runner_ros"
+        setup_logging(output_path=cfg.output_path, config_path=cfg.logging_config)  # 设置日志记录
+        self.logger = logging.getLogger(__name__)   #  __name__ 获取当前模块的名称
         self.logger.info("[Runner ROS1]")
-        self.logger.info(OmegaConf.to_yaml(cfg))
+        self.logger.info(OmegaConf.to_yaml(cfg))       # 打印配置文件内容
 
         self.cfg = cfg
-        self.dualmap = Dualmap(cfg)
-        super().__init__(cfg, self.dualmap)
+        self.dualmap = Dualmap(cfg)     # 初始化 Dualmap 实例
+        super().__init__(cfg, self.dualmap)     # Call base class constructor
 
         self.bridge = CvBridge()
         self.dataset_cfg = OmegaConf.load(cfg.ros_stream_config_path)
