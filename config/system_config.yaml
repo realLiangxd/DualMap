@@ -1,6 +1,6 @@
 defaults:
   - base_config
-  - support_config/demo_config@_here_
+  - support_config/demo_config@_here_     # 引用 demo_config.yaml 作为基础配置
   - _self_
 
 # ============================================================

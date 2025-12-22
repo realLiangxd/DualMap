@@ -80,8 +80,8 @@ def measure_time(func):
     return wrapper
 
 
-@contextmanager
-def timing_context(name, instance, results_attr_name="timing_results"):
+@contextmanager                                                             # @contextmanager 装饰器将一个生成器函数转换为上下文管理器，使其可以与 with 语句一起使用
+def timing_context(name, instance, results_attr_name="timing_results"):     # 该函数用于测量代码块的执行时间，并将结果存储在指定实例的属性中
     """
     Context manager for measuring execution time with optional storage.
 

@@ -34,23 +34,23 @@ class RunnerROS1(RunnerROSBase):
         super().__init__(cfg, self.dualmap)     # Call base class constructor
 
         self.bridge = CvBridge()
-        self.dataset_cfg = OmegaConf.load(cfg.ros_stream_config_path)
-        self.intrinsics = self.load_intrinsics(self.dataset_cfg)
-        self.extrinsics = self.load_extrinsics(self.dataset_cfg)
+        self.dataset_cfg = OmegaConf.load(cfg.ros_stream_config_path)   # 加载数据集配置文件
+        self.intrinsics = self.load_intrinsics(self.dataset_cfg)        # 加载相机内参
+        self.extrinsics = self.load_extrinsics(self.dataset_cfg)        # camera to lidar 外参
 
         # Image and Odometry Subscribers
         if self.cfg.use_compressed_topic:
             self.logger.warning("[Main] Using compressed topics.")
-            self.rgb_sub = Subscriber(self.dataset_cfg.ros_topics.rgb, CompressedImage)
+            self.rgb_sub = Subscriber(self.dataset_cfg.ros_topics.rgb, CompressedImage) # 订阅压缩的 RGB 图像话题
             self.depth_sub = Subscriber(
-                self.dataset_cfg.ros_topics.depth, CompressedImage
+                self.dataset_cfg.ros_topics.depth, CompressedImage      # 订阅压缩的深度图像话题
             )
         else:
             self.logger.warning("[Main] Using uncompressed topics.")
-            self.rgb_sub = Subscriber(self.dataset_cfg.ros_topics.rgb, Image)
-            self.depth_sub = Subscriber(self.dataset_cfg.ros_topics.depth, Image)
+            self.rgb_sub = Subscriber(self.dataset_cfg.ros_topics.rgb, Image)   # 订阅未压缩的 RGB 图像话题
+            self.depth_sub = Subscriber(self.dataset_cfg.ros_topics.depth, Image)   # 订阅未压缩的深度图像话题
 
-        self.odom_sub = Subscriber(self.dataset_cfg.ros_topics.odom, Odometry)
+        self.odom_sub = Subscriber(self.dataset_cfg.ros_topics.odom, Odometry)  # 订阅里程计话题
 
         # Sync RGB + Depth + Odometry
         self.sync = ApproximateTimeSynchronizer(
@@ -67,20 +67,20 @@ class RunnerROS1(RunnerROSBase):
             self.camera_info_callback,
         )
 
-    def synced_callback(self, rgb_msg, depth_msg, odom_msg):
+    def synced_callback(self, rgb_msg, depth_msg, odom_msg):        # 同步回调函数
         """Callback for synchronized RGB, Depth, and Odom messages."""
         timestamp = rgb_msg.header.stamp.to_sec()
 
         if self.cfg.use_compressed_topic:
-            rgb_img = self.decompress_image(rgb_msg.data, is_depth=False)
-            depth_img = self.decompress_image(depth_msg.data, is_depth=True)
+            rgb_img = self.decompress_image(rgb_msg.data, is_depth=False)       # 解压缩 RGB 图像
+            depth_img = self.decompress_image(depth_msg.data, is_depth=True)   # 解压缩深度图像
         else:
             rgb_img = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding="rgb8")
             depth_img = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding="16UC1")
 
-        depth_factor = getattr(self.dataset_cfg, 'depth_factor', 1000.0)
-        depth_img = depth_img.astype(np.float32) / depth_factor
-        depth_img = np.expand_dims(depth_img, axis=-1)
+        depth_factor = getattr(self.dataset_cfg, 'depth_factor', 1000.0)    # 深度图像缩放因子，默认值为1000.0
+        depth_img = depth_img.astype(np.float32) / depth_factor      # 将深度图像转换为浮点数并进行缩放
+        depth_img = np.expand_dims(depth_img, axis=-1)                     # 扩展深度图像维度以匹配预期格式
 
         translation = np.array(
             [
@@ -113,7 +113,7 @@ class RunnerROS1(RunnerROSBase):
         rate = rospy.Rate(self.cfg.ros_rate)
         while not rospy.is_shutdown() and not self.shutdown_requested:
             try:
-                self.run_once(lambda: time.time())
+                self.run_once(lambda: time.time())      # 使用系统时间作为当前时间  lambda: time.time() 是一个匿名函数，调用时返回当前时间
             except Exception as e:
                 self.logger.error(f"[RunnerROS1] Exception: {e}", exc_info=True)
             rate.sleep()

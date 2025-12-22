@@ -45,10 +45,10 @@ class Dualmap:
         self.print_cfg()    
 
         # Initialization
-        self.visualizer = ReRunVisualizer(cfg)
-        self.detector = Detector(cfg)
-        self.local_map_manager = LocalMapManager(cfg)
-        self.global_map_manager = GlobalMapManager(cfg)
+        self.visualizer = ReRunVisualizer(cfg)      # 可视化模块
+        self.detector = Detector(cfg)           # 目标检测模块
+        self.local_map_manager = LocalMapManager(cfg)       # 局部地图管理模块
+        self.global_map_manager = GlobalMapManager(cfg)    # 全局地图管理模块
 
         # Additional initialization for visualization
         self.visualizer.set_use_rerun(cfg.use_rerun)
@@ -168,10 +168,10 @@ class Dualmap:
             print(f"{key:<30} : {value}")
         print("=" * line_length)
 
-    def get_keyframe_idx(self):
+    def get_keyframe_idx(self):     # 获取当前关键帧的索引
         return self.keyframe_counter
 
-    def check_keyframe(self, time_stamp, curr_pose):
+    def check_keyframe(self, time_stamp, curr_pose):        # 传统的关键帧选取方式，通过判断时间间隔、位姿差异（平移和旋转）来决定是否为关键帧
         """
         Check if the current frame should be selected as a keyframe based on
         time interval, pose difference (translation), and rotation difference.
@@ -240,6 +240,7 @@ class Dualmap:
         It is primarily used for debugging and testing purposes.
         Also, Sequential processing mode does not support navigation.
         """
+        
 
         # Get current frame id
         self.curr_frame_id = data_input.idx

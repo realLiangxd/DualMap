@@ -259,10 +259,10 @@ class Detector:
 
         # self.curr_data.clear()
 
-    def set_data_input(self, curr_data: DataInput) -> None:
+    def set_data_input(self, curr_data: DataInput) -> None:         # 设置当前数据输入，并启动后台线程处理布局点云的更新
         self.curr_data = curr_data
 
-        if not self.cfg.preload_layout:
+        if not self.cfg.preload_layout:                             # 如果没有预加载布局点云，则启动后台线程处理数据输入
             # If a thread is already running, wait for it to finish
             if self.data_thread and self.data_thread.is_alive():
                 self.data_thread.join()
@@ -848,7 +848,7 @@ class Detector:
 
         return max_indices
 
-    def depth_to_point_cloud(self, sample_rate=1) -> o3d.geometry.PointCloud:
+    def depth_to_point_cloud(self, sample_rate=1) -> o3d.geometry.PointCloud:       # -> o3d.geometry.PointCloud 代表函数返回一个Open3D的PointCloud对象
         """
         Convert depth image to a point cloud and transform it to world coordinates.
 
@@ -861,19 +861,19 @@ class Detector:
         # Extract necessary data from curr_data
         depth = self.curr_data.depth.squeeze(
             -1
-        )  # Remove the last dimension if depth is (H, W, 1)
-        intrinsics = self.curr_data.intrinsics
-        pose = self.curr_data.pose
+        )  # Remove the last dimension if depth is (H, W, 1)    # 获取当前数据的深度图像，并去除最后一个维度（如果存在），在runner中处理深度图像后以 (H, W, 1) 的形式存储
+        intrinsics = self.curr_data.intrinsics    # 获取相机内参矩阵
+        pose = self.curr_data.pose      # 世界系下位姿，已经在runner_ros1被处理
 
-        # Mask out invalid depth values (e.g., depth = 0 or NaN)
+        # Mask out invalid depth values (e.g., depth = 0 or NaN)  # 检查深度信息异常点      
         valid_mask = (depth > 0) & (
             depth != np.inf
         )  # Create a mask for valid depth values
-        depth = depth[valid_mask]  # Only keep valid depth values
+        depth = depth[valid_mask]  # Only keep valid depth values   # 保留有用深度点
 
         # Get the corresponding u, v coordinates for valid pixels
-        height, width = self.curr_data.depth.shape[:2]
-        u, v = np.meshgrid(np.arange(width), np.arange(height))
+        height, width = self.curr_data.depth.shape[:2]      # .shape[:2]为将深度图像的高度和宽度提取出来
+        u, v = np.meshgrid(np.arange(width), np.arange(height))     # numpy.meshgrid 函数用于生成网格坐标矩阵，常用于把像素索引展开为对应的 u（列/横向）和 v（行/纵向）坐标以便与深度值结合计算 3D 点。
         u = u[valid_mask]
         v = v[valid_mask]
 
@@ -892,7 +892,7 @@ class Detector:
         z = depth
 
         # Stack the coordinates to form the point cloud in the camera coordinate system
-        points_camera = np.vstack((x, y, z)).T
+        points_camera = np.vstack((x, y, z)).T      # .T 转置操作
 
         # Convert points to homogeneous coordinates (4D) for transformation
         points_homogeneous = np.hstack(
@@ -903,7 +903,7 @@ class Detector:
         points_world_homogeneous = (pose @ points_homogeneous.T).T
 
         # Discard the homogeneous coordinate (last column) to get the final 3D points in world coordinates
-        points_world = points_world_homogeneous[:, :3]
+        points_world = points_world_homogeneous[:, :3]      # 去掉齐次坐标，保留前三列作为最终的3D点
 
         # Create a PointCloud object and set its points
         point_cloud = o3d.geometry.PointCloud()

@@ -59,7 +59,7 @@ class RunnerROSBase:
         )
         return np.eye(4)
 
-    def create_world_transform(self):
+    def create_world_transform(self):       # 创建世界坐标系变换矩阵    # 疑问点1
         """Create world coordinate transformation from roll/pitch/yaw."""
         roll = np.radians(self.cfg.world_roll)
         pitch = np.radians(self.cfg.world_pitch)
@@ -110,7 +110,7 @@ class RunnerROSBase:
 
     def push_data(self, rgb_img, depth_img, pose, timestamp):
         """Push synchronized input data into queue for processing."""
-        transformed_pose = self.create_world_transform() @ (pose @ self.extrinsics)
+        transformed_pose = self.create_world_transform() @ (pose @ self.extrinsics)             # @ 代表矩阵相乘
 
         data_input = DataInput(
             idx=self.kf_idx,
@@ -124,38 +124,40 @@ class RunnerROSBase:
         self.synced_data_queue.append(data_input)
         return data_input
 
+    # 运行一次处理逻辑,注意；dualMap核心处理函数包括： sequential_process、parallel_process、check_keyframe；另外还有部分辅助函数包括：get_keyframe_idx、end_process
+
     def run_once(self, current_time_fn):
         """Check and process a keyframe if data is ready."""
-        if not self.synced_data_queue:
+        if not self.synced_data_queue:      # 如果同步数据队列为空，则直接返回
             return
 
-        data_input = self.synced_data_queue[-1]
+        data_input = self.synced_data_queue[-1]     # 获取队列中的最新数据输入
 
-        if not self.dualmap.calculate_path:
-            current_time = current_time_fn()
-            last_time = self.last_message_time
-            if self.cfg.use_end_process and last_time is not None:
-                if current_time - last_time > 20.0:
-                    self.logger.warning(
-                        "[Main] No new data received. Entering end process."
+        if not self.dualmap.calculate_path:         # 如果不计算路径，则进行以下检查
+            current_time = current_time_fn()        # 获取当前时间
+            last_time = self.last_message_time      # 获取上次接收消息的时间
+            if self.cfg.use_end_process and last_time is not None:      # 如果配置了结束处理且上次消息时间不为空
+                if current_time - last_time > 20.0:     # 如果当前时间与上次消息时间的差值大于20秒
+                    self.logger.warning(        
+                        "[Main] No new data received. Entering end process."        # 进入结束处理
                     )
-                    self.dualmap.end_process()
-                    self.shutdown_requested = True
+                    self.dualmap.end_process()      # 调用 dualmap 的结束处理方法
+                    self.shutdown_requested = True  # 请求关闭
                     return
 
-        if not self.dualmap.check_keyframe(data_input.time_stamp, data_input.pose):
+        if not self.dualmap.check_keyframe(data_input.time_stamp, data_input.pose):   # 检查当前数据输入是否为关键帧
             return
 
-        data_input.idx = self.dualmap.get_keyframe_idx()
+        data_input.idx = self.dualmap.get_keyframe_idx()    # 更新数据输入的索引为当前关键帧索引
 
         self.logger.info(
             "[Main] ============================================================"
         )
-        with timing_context("Time Per Frame", self.dualmap):
-            if self.cfg.use_parallel:
-                self.dualmap.parallel_process(data_input)
+        with timing_context("Time Per Frame", self.dualmap):    # 计时上下文管理器，用于测量处理时间
+            if self.cfg.use_parallel:                 # 如果配置了并行处理
+                self.dualmap.parallel_process(data_input)   # 使用并行处理方法处理数据输入
             else:
-                self.dualmap.sequential_process(data_input)
+                self.dualmap.sequential_process(data_input)   # 否则使用顺序处理方法处理数据输入
 
         self.logger.info(
             f"[Main] Processing keyframe {data_input.idx} took {time.time() - data_input.time_stamp:.2f} seconds."
