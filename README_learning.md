@@ -1,4 +1,9 @@
 ## runner_ros_base.py中
+
+问题1 frame idx 是否有自增，没发现
+
+问题2 fast-sam、与yolo、sam、之间的关系
+
 # 运行一次处理逻辑,注意；dualMap核心处理函数包括： sequential_process、parallel_process、check_keyframe；另外还有部分辅助函数包括：get_keyframe_idx、end_process
 
 ## core.py中

@@ -653,7 +653,7 @@ class GlobalMapManager(BaseMapManager):
         logger.warning(f"[GlobalMap][Path] Invalid goal mode: {goal_mode}")
         return None
 
-    def find_best_candidate_with_inquiry(self):
+    def find_best_candidate_with_inquiry(self):     # 通过余弦相似度找到最佳候选对象
         """
         This function finds the best candidate in the global map based on cosine similarity.
         It compares the input query with all objects in the global map and selects the object with the highest similarity.
@@ -707,7 +707,7 @@ class GlobalMapManager(BaseMapManager):
         # Sort the objects by similarity, from highest to lowest
         sorted_candidates = sorted(cos_sim, key=lambda x: x[1], reverse=True)
 
-        # Get the best candidate (highest cosine similarity)
+        # Get the best candidate (highest cosine similarity)    # 选择余弦相似度最高的对象作为最佳候选
         best_candidate, best_similarity = sorted_candidates[0]
 
         if (

@@ -7,14 +7,16 @@
 
 ## 📚 Table of Content
 
-- [Online Interactive Mapping](#online-interactive-mapping)
-- [Preloading Pre-built Map](#preloading-pre-built-map)
-- [Online Navigation](#online-navigation)
+- [Online Mapping and Navigation in Simulation](#online-mapping-and-navigation-in-simulation)
+  - [📚 Table of Content](#-table-of-content)
+  - [Online Interactive Mapping](#online-interactive-mapping)
+  - [Preloading Pre-built Map](#preloading-pre-built-map)
+  - [Online Navigation](#online-navigation)
     - [Prerequisites](#prerequisites)
     - [Configurations](#configurations)
-    - [Navigation Mode - random](#navigation-mode---random)
-    - [Navigation Mode - click](#navigation-mode---click)
-    - [Navigation Mode - inquiry](#navigation-mode---inquiry)
+    - [Navigation Mode - 'random'](#navigation-mode---random)
+    - [Navigation Mode - 'click'](#navigation-mode---click)
+    - [Navigation Mode - 'inquiry'](#navigation-mode---inquiry)
 
 ## Online Interactive Mapping
 
@@ -171,7 +173,7 @@ calculate_path: false
 # 3. inquiry — Navigates to the target object with the highest similarity to the inquiry_sentence
 get_goal_mode: click
 
-# Target description used when get_goal_mode is "inquiry"
+# Target description used when get_goal_mode is "inquiry" # e.g., "bowl"
 inquiry_sentence: bowl
 
 # If the navigation attempt fails, set this to true to trigger navigation to the next target

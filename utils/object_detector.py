@@ -136,7 +136,7 @@ class Detector:
         # For thread processing
         self.layout_lock = (
             threading.Lock()
-        )  # Thread lock for protecting layout_pointcloud
+        )  # Thread lock for protecting layout_pointcloud   # 这把锁用于保护 layout_pointcloud 变量，防止多线程同时访问导致数据不一致
         self.data_thread = None  # Thread handle
         self.data_event = threading.Event()  # Thread notification event
 
@@ -174,7 +174,7 @@ class Detector:
                     f"[Detector][Init] Loading YOLO model from\t{cfg.yolo.model_path}"
                 )
                 self.yolo = YOLO(cfg.yolo.model_path)
-                self.yolo.set_classes(self.obj_classes.get_classes_arr())
+                self.yolo.set_classes(self.obj_classes.get_classes_arr())   
             except Exception as e:
                 logger.error(f"[Detector][Init] Error loading YOLO model: {e}")
                 return
@@ -216,7 +216,7 @@ class Detector:
             self.num_examples = num_examples
             self.proto_feats = proto_feats
 
-            # Get the text feats of all the classes
+            # Get the text feats of all the classes     # 这里计算所有类别文本特征，并存储在 self.class_feats 中
             class_feats = get_text_features(
                 self.obj_classes.get_classes_arr(),
                 self.clip_model,
@@ -226,7 +226,7 @@ class Detector:
             )
             self.class_feats = class_feats
 
-            # Used for unknown class
+            # Used for unknown class    #这里计算所有类别文本特征的平均值，并进行归一化处理
             if cfg.use_avg_feat_for_unknown:
                 class_feats_mean = np.mean(class_feats, axis=0)
                 self.class_feats_mean = class_feats_mean / np.linalg.norm(
@@ -278,7 +278,7 @@ class Detector:
         # Initialize prev_kf_data and layout_pointcloud
         if self.prev_kf_data is None:
             self.prev_kf_data = self.curr_data.copy()
-            layout_pcd = self.depth_to_point_cloud(sample_rate=16)
+            layout_pcd = self.depth_to_point_cloud(sample_rate=16)      # 生成初始布局点云，采样率为16
             with self.layout_lock:  # Ensure thread safety for layout_pointcloud
                 self.layout_pointcloud += layout_pcd.voxel_down_sample(
                     voxel_size=self.cfg.layout_voxel_size
@@ -298,7 +298,7 @@ class Detector:
             # Generate current frame point cloud
             current_pcd = self.depth_to_point_cloud(sample_rate=16)
 
-            # Merge point clouds
+            # Merge point clouds # 点云降采样
             with self.layout_lock:
                 self.layout_pointcloud += current_pcd
                 logger.info(
@@ -454,7 +454,7 @@ class Detector:
         xyxy_tensor = results[0].boxes.xyxy
         xyxy_np = xyxy_tensor.cpu().numpy()
 
-        # Extract Masks with protection against None
+        # Extract Masks with protection against None    
         if results[0].masks is not None:
             masks_tensor = results[0].masks.data
             masks_np = masks_tensor.cpu().numpy().astype(bool)
@@ -465,7 +465,7 @@ class Detector:
             # If no mask is returned, create an empty array. Assume mask size matches input image's first two dims
             masks_np = np.empty((0,) + color.shape[:2], dtype=bool)
 
-        # Extract class IDs (default all set to unknown_class_id)
+        # Extract class IDs (default all set to unknown_class_id)   # 这里将所有检测的类别ID都设置为 unknown_class_id
         detection_class_id_tensor = results[0].boxes.cls
         detection_class_id_np = detection_class_id_tensor.cpu().numpy().astype(int)
         detection_class_id_np = np.full_like(
@@ -474,7 +474,7 @@ class Detector:
 
         return confidence_np, detection_class_id_np, xyxy_np, masks_np
 
-    def merge_detections(self, detections1, detections2):
+    def merge_detections(self, detections1, detections2):   # Merge two sv.Detections objects
         # Check if first detections is empty
         if len(detections1.xyxy) == 0:
             return detections2
@@ -551,7 +551,7 @@ class Detector:
             self.curr_results = {}
             return
         with timing_context("Segmentation", self):
-            sam_out = self.sam.predict(color, bboxes=xyxy, verbose=False)
+            sam_out = self.sam.predict(color, bboxes=xyxy, verbose=False)   # 使用 YOLO 预测的边界框作为 SAM 的输入，进行图像分割，得到每个边界框对应的掩码
             masks_tensor = sam_out[0].masks.data
             masks_np = masks_tensor.cpu().numpy()
             self.masks_np = masks_np
@@ -610,7 +610,7 @@ class Detector:
         overlap_ratio_curr = intersection / torch.clamp(curr_area, min=1e-7)  # (N1, N2)
 
         # Initialize keep mask, default is to keep all fs_masks
-        keep_mask = torch.ones(num_fs, dtype=torch.bool, device=device)
+        keep_mask = torch.ones(num_fs, dtype=torch.bool, device=device)     # 用于标记每个 FastSAM 掩码是否保留，初始值为全 True
 
         # Filter masks one by one
         for i in range(num_fs):
@@ -625,9 +625,9 @@ class Detector:
             if overlap.any():
                 keep_mask[i] = False
 
-        # Filter detections based on keep mask
+        # Filter detections based on keep mask      # 也就是说保留那些没有与当前检测结果重叠的 FastSAM 掩码对应的检测结果
         filtered_fs_detections = sv.Detections(
-            xyxy=fs_xyxy[keep_mask].cpu().numpy(),
+            xyxy=fs_xyxy[keep_mask].cpu().numpy(),          # 仅保留被标记为 True 的 FastSAM 掩码对应的检测结果
             confidence=fs_confidence[keep_mask].cpu().numpy(),
             class_id=fs_class_id[keep_mask].cpu().numpy(),
             mask=fs_masks[keep_mask].cpu().numpy(),
@@ -664,7 +664,7 @@ class Detector:
             # Run FastSAM
             if self.cfg.use_fastsam:
                 fastsam_thread = threading.Thread(
-                    target=self.process_fastsam, args=(color,)
+                    target=self.process_fastsam, args=(color,)      # 启动一个线程运行 FastSAM
                 )
                 fastsam_thread.start()
 
@@ -677,7 +677,7 @@ class Detector:
 
         with timing_context("Detection Filter", self):
             self.filter.update_detections(self.curr_detections, color)
-            filtered_detections = self.filter.run_filter()
+            filtered_detections = self.filter.run_filter()  # 对当前检测结果进行过滤，得到过滤后的检测结果
 
         if self.filter.get_len() == 0:
             logger.warning(
@@ -695,11 +695,11 @@ class Detector:
 
         with timing_context("CLIP+Create Object Pointcloud", self):
             cluster_thread = threading.Thread(
-                target=self.process_masks, args=(filtered_detections.mask,)
+                target=self.process_masks, args=(filtered_detections.mask,)     # 启动一个线程处理掩码，生成点云
             )
             cluster_thread.start()
 
-            with timing_context("CLIP", self):
+            with timing_context("CLIP", self):      # 使用CLIP用于计算图像和文本特征；关于CLIP的细节见utils/object_detector.py中的compute_clip_features_batched函数
                 image_crops, image_feats, text_feats = (
                     self.compute_clip_features_batched(
                         color,
@@ -708,7 +708,7 @@ class Detector:
                         self.clip_tokenizer,
                         self.clip_preprocess,
                         self.cfg.device,
-                        self.obj_classes.get_classes_arr(),
+                        self.obj_classes.get_classes_arr(),     # 获取类别名称数组
                     )
                 )
 
@@ -784,35 +784,35 @@ class Detector:
                 mask_colors = colors_tensor[i]
 
                 # Filter valid points based on Z-axis > 0
-                valid_points_mask = mask_points[:, :, 2] > 0
+                valid_points_mask = mask_points[:, :, 2] > 0        # Z-axis > 0，表示只保留深度值大于0的点
 
                 if torch.sum(valid_points_mask) < self.cfg.min_points_threshold:
                     refined_points_list.append(None)
                     refined_colors_list.append(None)
                     continue
 
-                valid_points = mask_points[valid_points_mask]
-                valid_colors = mask_colors[valid_points_mask]
+                valid_points = mask_points[valid_points_mask]       # 仅保留有效点
+                valid_colors = mask_colors[valid_points_mask]       # 仅保留有效点对应的颜色
 
                 # Random sampling based on sample ratio
                 sample_ratio = self.cfg.pcd_sample_ratio
                 num_points = valid_points.shape[0]
 
                 if sample_ratio < 1.0:
-                    sample_count = int(num_points * sample_ratio)
-                    sample_indices = torch.randperm(num_points)[:sample_count]
+                    sample_count = int(num_points * sample_ratio)       # 计算采样点数
+                    sample_indices = torch.randperm(num_points)[:sample_count]      # 随机选择采样点的索引
                     downsampled_points = valid_points[sample_indices]
                     downsampled_colors = valid_colors[sample_indices]
                 else:
-                    downsampled_points = valid_points
+                    downsampled_points = valid_points       
                     downsampled_colors = valid_colors
 
                 # Refine points using clustering
                 refined_points, refined_colors = refine_points_with_clustering(
                     downsampled_points,
                     downsampled_colors,
-                    eps=self.cfg.dbscan_eps,
-                    min_points=self.cfg.dbscan_min_points,
+                    eps=self.cfg.dbscan_eps,        # DBSCAN 聚类的半径参数，表示在该距离范围内的点会被视为同一簇
+                    min_points=self.cfg.dbscan_min_points,  # DBSCAN 聚类的最小点数参数，表示一个簇中至少需要包含的点数
                 )
 
                 refined_points_list.append(refined_points)
@@ -1414,57 +1414,57 @@ class Detector:
         device,
         classes,
     ):
-        # Convert the image to a PIL Image
+        # Convert the image to a PIL Image  # CV2格式转PIL格式，因为CLIP的预处理函数需要PIL Image作为输入
         image = Image.fromarray(image)
 
-        # Set the padding for cropping
+        # Set the padding for cropping  # 设置裁剪的填充，填充的意义是为了在裁剪时保留一些上下文信息，避免裁剪过紧导致信息丢失
         padding = 20
 
-        # Initialize lists to store the cropped images and features
+        # Initialize lists to store the cropped images and features # 初始化列表以存储裁剪的图像和特征
         image_crops = []
         image_feats = []
         text_feats = []
 
-        # Initialize lists to store preprocessed images and text tokens for batch processing
+        # Initialize lists to store preprocessed images and text tokens for batch processing    # 初始化列表以存储预处理的图像和文本标记以进行批处理
         preprocessed_images = []
         text_tokens = []
 
         # Prepare data for batch processing
-        for idx in range(len(detections.xyxy)):
+        for idx in range(len(detections.xyxy)):     # 遍历每个检测框
             x_min, y_min, x_max, y_max = detections.xyxy[idx]
             image_width, image_height = image.size
 
-            # Calculate the padding for each side of the bounding box
+            # Calculate the padding for each side of the bounding box   # 计算边界框每一侧的填充,确保不会超出图像边界
             left_padding = min(padding, x_min)
             top_padding = min(padding, y_min)
             right_padding = min(padding, image_width - x_max)
             bottom_padding = min(padding, image_height - y_max)
 
-            # Adjust the bounding box coordinates based on the padding
+            # Adjust the bounding box coordinates based on the padding          # 根据填充调整边界框坐标
             x_min -= left_padding
             y_min -= top_padding
             x_max += right_padding
             y_max += bottom_padding
 
-            # Crop the image
+            # Crop the image    # 裁剪图像
             cropped_image = image.crop((x_min, y_min, x_max, y_max))
 
-            # Preprocess the cropped image
-            preprocessed_image = clip_preprocess(cropped_image).unsqueeze(0)
-            preprocessed_images.append(preprocessed_image)
+            # Preprocess the cropped image      # 预处理裁剪的图像
+            preprocessed_image = clip_preprocess(cropped_image).unsqueeze(0)    # 添加一个批次维度
+            preprocessed_images.append(preprocessed_image)      # 添加到预处理图像列表中
 
             # Get the class id for the detection
-            class_id = detections.class_id[idx]
+            class_id = detections.class_id[idx]     # 获取检测的类别ID
 
             # Append the class name to the text tokens list
-            text_tokens.append(classes[class_id])
+            text_tokens.append(classes[class_id])   # 根据类别ID获取类别名称并添加到文本标记列表中
 
             # Append the cropped image to the image crops list
-            image_crops.append(cropped_image)
+            image_crops.append(cropped_image)   # 添加裁剪的图像到图像裁剪列表中
 
         # Convert lists to batches
-        preprocessed_images_batch = torch.cat(preprocessed_images, dim=0).to(device)
-        text_tokens_batch = clip_tokenizer(text_tokens).to(device)
+        preprocessed_images_batch = torch.cat(preprocessed_images, dim=0).to(device)        # 拼接预处理的图像张量以形成一个批次，并将其移动到指定设备上
+        text_tokens_batch = clip_tokenizer(text_tokens).to(device)  # 使用CLIP的分词器对文本标记进行编码，并将其移动到指定设备上
 
         # Perform batch inference
         with torch.no_grad():
@@ -1484,14 +1484,14 @@ class Detector:
         image_feats = image_features.cpu().numpy()
         text_feats = text_features.cpu().numpy()
 
-        if self.cfg.use_avg_feat_for_unknown:
+        if self.cfg.use_avg_feat_for_unknown:   # use the mean feature for unknown class, 作用是将未知类别的文本特征替换为所有类别文本特征的平均值，以提供一个更稳定和通用的表示
             count = 0
             for idx, class_id in enumerate(detections.class_id):
-                if class_id == self.unknown_class_id:
+                if class_id == self.unknown_class_id:   # 如果检测到的类别是未知类别
                     count += 1
                     # Modify the text_feats for the unknown class
                     text_feats[idx] = (
-                        self.class_feats_mean
+                        self.class_feats_mean   # 将文本特征替换为预先计算的所有类别文本特征的平均值
                     )  # You can modify how you update the text_feats here
 
                     # random_feats = np.random.rand(*self.class_feats_mean.shape)
@@ -1555,16 +1555,18 @@ class Filter:
             self.xyxy = detections.xyxy
             self.masks = detections.mask
 
-            self.masks_size = np.sum(self.masks, axis=(1, 2))
+            self.masks_size = np.sum(self.masks, axis=(1, 2))   # 计算每个掩码的大小（像素数量）
 
             # Compute intersection every time the detections are updated
             N = self.get_len()
             # Convert masks to PyTorch tensors to accelerate computation
             # Compute pairwise intersection using matrix operations
+            # 以下部分使用PyTorch来加速计算掩码之间的交集
             device = self.device
             masks = torch.tensor(self.masks, dtype=torch.float32).to(device)
             intersection = torch.matmul(masks.view(N, -1), masks.view(N, -1).T)
 
+            # Convert intersection matrix back to NumPy array for further processing
             self.inter_np = intersection.cpu().numpy()
 
     def set_device(self, device):
@@ -1576,7 +1578,7 @@ class Filter:
             logger.warning("[Detector][Filter] No detections to filter.")
             return
 
-        keep = self.filter_by_mask_size()
+        keep = self.filter_by_mask_size()   # filter small masks first
         self.set_detections(keep)
 
         if not self.skip_refinement:
@@ -1767,9 +1769,9 @@ class Filter:
 
     def filter_by_mask_size(self):
         keep = self.masks_size >= self.small_mask_size
-        for idx, is_keep in enumerate(keep):
+        for idx, is_keep in enumerate(keep):    # 遍历每个检测结果 enumerate 是 Python 的一个内置函数，用于在遍历可迭代对象（如列表、元组、字符串等）时，同时获取元素的索引和值。
             if not is_keep:
-                class_name = self.classes.get_classes_arr()[self.class_id[idx]]
+                class_name = self.classes.get_classes_arr()[self.class_id[idx]]     # 获取类名
                 logger.info(
                     f"[Detector][Filter] Removing {class_name} because the mask size is too small."
                 )
@@ -1827,10 +1829,12 @@ def if_same_distribution(img1, img2, mask1, mask2, sim_threshold):
     return cos_sim > sim_threshold
 
 
-def get_text_features(
+# get text features for the class names, 这里的处理思路是使用多个模板来生成每个类名的文本提示，然后通过CLIP模型对这些提示进行编码，最后对同一类名的多个提示的特征进行平均，以获得更鲁棒的文本特征表示。具体来说：clip_model: 预训练的CLIP模型，用于编码文本提示。clip_tokenizer: CLIP模型的分词器，用于将文本提示转换为模型可接受的输入格式。device: 指定计算设备（如CPU或GPU）。clip_length: CLIP模型输出特征的维度。batch_size: 批处理大小，用于分批次处理文本提示以节省内存。
+def get_text_features(      
     class_names: list, clip_model, clip_tokenizer, device, clip_length, batch_size=64
-) -> np.ndarray:
+) -> np.ndarray:        # Get the text features for the class names using CLIP model    
 
+    # multiple templates for better performance,  使用多个模板来生成文本提示，以提高性能和鲁棒性
     multiple_templates = [
         "{}",
         "There is the {} in the scene.",
@@ -1838,31 +1842,31 @@ def get_text_features(
 
     # Get all the prompted sequences
     class_name_prompts = [
-        x.format(lm) for lm in class_names for x in multiple_templates
+        x.format(lm) for lm in class_names for x in multiple_templates      # 使用每个模板为每个类名生成文本提示，例如 "There is the chair in the scene."， "chair"
     ]
 
-    # Get tokens
+    # Get tokens        # 使用CLIP的分词器对文本提示进行编码，并将其移动到指定设备上
     text_tokens = clip_tokenizer(class_name_prompts).to(device)
-    # Get Output features
+    # Get Output features   # 初始化一个用于存储文本特征的数组
     text_feats = np.zeros((len(class_name_prompts), clip_length), dtype=np.float32)
     # Get the text feature batch by batch
     text_id = 0
     while text_id < len(class_name_prompts):
-        # Get batch size
+        # Get batch size    # 确保最后一个批次不会超出范围
         batch_size = min(len(class_name_prompts) - text_id, batch_size)
-        # Get text prompts based on batch size
+        # Get text prompts based on batch size  # 提取当前批次的文本标记
         text_batch = text_tokens[text_id : text_id + batch_size]
-        with torch.no_grad():
+        with torch.no_grad():   # 禁用梯度计算以节省内存
             batch_feats = clip_model.encode_text(text_batch).float()
 
-        batch_feats /= batch_feats.norm(dim=-1, keepdim=True)
-        batch_feats = np.float32(batch_feats.cpu())
+        batch_feats /= batch_feats.norm(dim=-1, keepdim=True)   # 归一化文本特征
+        batch_feats = np.float32(batch_feats.cpu())  # 将特征从PyTorch张量转换为NumPy数组   
         # move the calculated batch into the Ouput features
         text_feats[text_id : text_id + batch_size, :] = batch_feats
         # Move on and Move on
         text_id += batch_size
 
-    # shrink the output text features into classes names size
+    # shrink the output text features into classes names size       # 将文本特征重新整形为 (num_classes, num_templates, feature_dim)，然后对同一类名的多个模板特征进行平均
     text_feats = text_feats.reshape((-1, len(multiple_templates), text_feats.shape[-1]))
     text_feats = np.mean(text_feats, axis=1)
 

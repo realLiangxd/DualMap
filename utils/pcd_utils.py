@@ -102,7 +102,8 @@ def init_pcd_denoise_dbscan(
 def refine_points_with_clustering(points, colors, eps=0.05, min_points=10):
     """
     Cluster the point cloud using Open3D's DBSCAN and extract the largest cluster.
-
+    聚类点云，提取最大簇
+    
     Args:
     - points: Point cloud coordinates (torch.Tensor, Nx3).
     - colors: Point cloud colors (torch.Tensor, Nx3).

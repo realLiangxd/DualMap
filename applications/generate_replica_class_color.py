@@ -8,6 +8,8 @@ import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
 
+# 这个脚本用于生成 Replica 数据集的类别和颜色映射文件
+
 @hydra.main(version_base=None, config_path="../config/", config_name="base_config")
 def main(cfg: DictConfig):
 

@@ -102,10 +102,10 @@ class ObjectClasses:
         some_class_color = obj_classes.get_class_color(index or class_name)
     """
 
-    def __init__(self, classes_file_path, bg_classes, skip_bg):
+    def __init__(self, classes_file_path, bg_classes, skip_bg):     # Initialize ObjectClasses with class file path and background classes, skip_bg flag
         self.classes_file_path = Path(classes_file_path)
         self.bg_classes = bg_classes
-        self.skip_bg = skip_bg
+        self.skip_bg = skip_bg      
         self.classes, self.class_to_color = self._load_or_create_colors(
             selection_ratio=1.0
         )
@@ -115,7 +115,7 @@ class ObjectClasses:
         Key function for classes creation and color creation
         Need external class file for detection part
         """
-        with open(self.classes_file_path, "r") as f:
+        with open(self.classes_file_path, "r") as f:        # load class names from file
             all_class = [cls.strip() for cls in f.readlines()]
 
         # filter all classes with skip bg flag

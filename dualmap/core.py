@@ -259,12 +259,12 @@ class Dualmap:
         with timing_context("Detection Process", self):
             self.detector.set_data_input(data_input)
 
-            if self.cfg.run_detection:
-                self.detector.process_detections()
+            if self.cfg.run_detection:                # 运行目标检测
+                self.detector.process_detections()      # 运行目标检测 YOLO+Segmentation+FastSAM
                 with timing_context("Save Detection", self):
                     if self.cfg.save_detection:
                         self.detector.save_detection_results()
-            else:
+            else:                         # 加载之前保存的检测结果 ???
                 self.detector.load_detection_results()
 
             # Detection results -> objects observation
@@ -292,12 +292,15 @@ class Dualmap:
         Process input data in parallel.
         """
         # Get current frame id
+        # 获取当前帧ID
         self.curr_frame_id = data_input.idx
 
         # Get current pose
+        # 获取当前位姿
         self.curr_pose = data_input.pose
 
         # Detection process
+        # 检测过程
         start_time = time.time()
         with timing_context("Observation Generation", self):
             self.detector.set_data_input(data_input)
@@ -305,6 +308,7 @@ class Dualmap:
             with timing_context("Process Detection", self):
                 if self.cfg.run_detection:
                     # Run detection
+                    # 运行检测
                     self.detector.process_detections()
                     with timing_context("Save Detection", self):
                         if self.cfg.save_detection:
@@ -320,6 +324,7 @@ class Dualmap:
             self.detector.update_state()
 
             try:
+                # 将检测结果放入队列，供后台建图线程处理
                 self.detection_results_queue.put(
                     (curr_obs_list, self.curr_frame_id), timeout=1
                 )
@@ -331,9 +336,11 @@ class Dualmap:
         end_time = time.time()
 
         # Set time sequence for visualizer
+        # 设置可视化器的时间序列
         self.visualizer.set_time_sequence("frame", self.curr_frame_id)
 
         # Set current camera information
+        # 设置当前相机信息
         self.visualizer.set_camera_info(data_input.intrinsics, data_input.pose)
         self.visualizer.set_image(data_input.color)
 
@@ -351,17 +358,21 @@ class Dualmap:
             self.global_map_manager.has_action_path = False
 
             # calculate the inquiry sentence to clip feat
+            # 计算查询语句的CLIP特征
             self.inquiry_feat = self.convert_inquiry_to_feat(self.inquiry)
 
             # set the global inquiry sentence to global map manager
+            # 将全局查询语句设置给全局地图管理器
             self.global_map_manager.inquiry = self.inquiry_feat
 
             # Get Current layout information from detector
+            # 从检测器获取当前布局信息
             layout_pcd = self.detector.get_layout_pointcloud()
             self.global_map_manager.set_layout_info(layout_pcd)
 
             # calculate the path based on current global map
             # Get 3D path point in world coordinate
+            # 基于当前全局地图计算路径，获取世界坐标系下的3D路径点
             self.curr_global_path = self.global_map_manager.calculate_global_path(
                 self.curr_pose, goal_mode=self.get_goal_mode
             )
@@ -387,13 +398,16 @@ class Dualmap:
                 # Increment path counter for next save
 
             # make reset of the information in the yaml
+            # 重置yaml中的信息
             self.reset_cal_path_flag = True
 
             # Clear the local mapping results
+            # 清除局部映射结果
             self.curr_local_path = None
 
             # Conditional open the local path planning
             # TODO: In future, for local avoidance, we need always local planning
+            # 有条件地开启局部路径规划
             if self.get_goal_mode == GoalMode.RANDOM or (
                 self.get_goal_mode == GoalMode.CLICK
                 and self.global_map_manager.nav_graph.snapped_goal is None
@@ -404,9 +418,11 @@ class Dualmap:
 
         # Local Path Planning
         # Local need global plan success
+        # 局部路径规划，需要全局规划成功
         if self.begin_local_planning and self.local_map_manager.has_local_map():
             logger.info("[Core] Local Navigation enabled! Triggering functionality...")
             # set the global inquiry sentence to global map manager
+            # 将全局查询语句设置给局部地图管理器
             self.local_map_manager.inquiry = self.inquiry_feat
 
             # logger.info("=====================================")
@@ -438,6 +454,7 @@ class Dualmap:
                 self.global_map_manager.lost_and_found = True
 
             # TEMP: Now explicitly pass the goal to local map to establish the workflow
+            # 临时：现在显式地将目标传递给局部地图以建立工作流
             global_path = self.curr_global_path
 
             start = global_path[-1]
@@ -450,11 +467,13 @@ class Dualmap:
             start_pose[2, 3] = z  # Z direction translation
 
             # for CLick mode, pass the click goal to local from global
+            # 对于点击模式，将点击目标从全局传递给局部
             if self.global_map_manager.nav_graph.snapped_goal is not None:
                 click_goal = self.global_map_manager.nav_graph.snapped_goal
                 self.local_map_manager.set_click_goal(click_goal)
 
             # for Inquiry mode, pass the inquiry goal bbox to local from global
+            # 对于查询模式，将查询目标bbox从全局传递给局部
             if self.global_map_manager.global_candidate_bbox is not None:
                 goal_bbox = self.global_map_manager.global_candidate_bbox
                 goal_score = self.global_map_manager.global_candidate_score
@@ -465,6 +484,7 @@ class Dualmap:
                 self.local_map_manager.set_global_map(global_map)
 
             # calculate the path based on current global map
+            # 基于当前全局地图计算路径（这里应该是局部路径）
             self.curr_local_path = self.local_map_manager.calculate_local_path(
                 start_pose, goal_mode=self.get_goal_mode
             )
@@ -501,7 +521,7 @@ class Dualmap:
             self.prev_pose = self.curr_pose
 
         # If both global path and local path exist
-
+        # 如果全局路径和局部路径都存在，获取最终行动路径
         self.get_action_path()
 
     def run_mapping_thread(self):
